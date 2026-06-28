@@ -4,6 +4,7 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import GUI from 'lil-gui';
 import { createSnow } from './snow.js';
 import { createLake } from './lake.js';
+import { createModelSystem } from './model.js';
 import { createPostFX } from './postfx.js';
 
 /* -------------------------------------------------------------------------- */
@@ -443,6 +444,19 @@ const lake = createLake({
 scene.add(lake.mesh);
 
 /* -------------------------------------------------------------------------- */
+/*  Model (default GLB + user import) — snow accumulates on its upward faces    */
+/* -------------------------------------------------------------------------- */
+const MODELS = {
+  'Rusty Car': '/old_rusty_car_2.glb',
+  'Porsche 911': '/porsche_911.glb',
+};
+const model = createModelSystem({
+  scene,
+  sharedUniforms: shared,
+  defaultUrl: MODELS['Rusty Car'],
+});
+
+/* -------------------------------------------------------------------------- */
 /*  Wind                                                                       */
 /* -------------------------------------------------------------------------- */
 const wind = {
@@ -649,17 +663,38 @@ fSnowGround
   .name('Sparkle Density');
 fSnowGround.close();
 
+/* --- Lake / model mutual exclusion ----------------------------------------- */
+// The frozen lake and the model can't share the scene: enabling one disables the
+// other. Both setters guard against recursion (they only disable on enable).
+const lakeState = { enabled: false };
+const appState = { showModel: false };
+let lakeEnabledCtrl = null; // assigned when the toggles are built
+let modelShownCtrl = null;
+function syncToggleDisplays() {
+  if (lakeEnabledCtrl) lakeEnabledCtrl.updateDisplay();
+  if (modelShownCtrl) modelShownCtrl.updateDisplay();
+}
+function setLakeEnabled(v) {
+  lakeState.enabled = v;
+  lakeUniforms.uLakeEnabled.value = v ? 1 : 0;
+  lake.applyShape();
+  if (v && appState.showModel) setModelShown(false);
+  syncToggleDisplays();
+}
+function setModelShown(v) {
+  appState.showModel = v;
+  model.setVisible(v);
+  if (v && lakeState.enabled) setLakeEnabled(false);
+  syncToggleDisplays();
+}
+
 /* --- Frozen lake ----------------------------------------------------------- */
 // Master toggle drives the shared uLakeEnabled (carves the ground + shows ice).
-const lakeState = { enabled: false };
 const fLake = gui.addFolder('🧊 Frozen Lake');
-fLake
+lakeEnabledCtrl = fLake
   .add(lakeState, 'enabled')
   .name('Enabled')
-  .onChange((v) => {
-    lakeUniforms.uLakeEnabled.value = v ? 1 : 0;
-    lake.applyShape();
-  });
+  .onChange(setLakeEnabled);
 
 // Shape & size — every change re-fits the ice disc to the new outline.
 const reshape = () => lake.applyShape();
@@ -708,6 +743,76 @@ fBasin.close();
 fIce.close();
 fDetail.close();
 fLake.close();
+
+/* --- Model + snow accumulation --------------------------------------------- */
+const fModel = gui.addFolder('🚗 Model');
+modelShownCtrl = fModel
+  .add(appState, 'showModel')
+  .name('Load Model')
+  .onChange(setModelShown);
+
+const modelSelect = { active: 'Rusty Car' };
+fModel
+  .add(modelSelect, 'active', Object.keys(MODELS))
+  .name('Model')
+  .onChange((k) => model.loadModel(MODELS[k]));
+
+const fileInput = document.getElementById('glb-input');
+fileInput.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (file) model.importFile(file);
+  fileInput.value = ''; // allow re-importing the same file
+});
+fModel.add({ import: () => fileInput.click() }, 'import').name('📂 Import GLB…');
+
+// Transform — every change re-syncs the world->model matrix so the snow stays put.
+const modelTransform = { scale: 1, posX: 0, posY: 0, posZ: 0, rotY: 0 };
+function applyModelTransform() {
+  model.group.scale.setScalar(modelTransform.scale);
+  model.group.position.set(modelTransform.posX, modelTransform.posY, modelTransform.posZ);
+  model.group.rotation.y = THREE.MathUtils.degToRad(modelTransform.rotY);
+  model.refreshMatrix();
+}
+fModel.add(modelTransform, 'scale', 0.05, 10, 0.01).name('Scale').onChange(applyModelTransform);
+fModel.add(modelTransform, 'posX', -10, 10, 0.01).name('Position X').onChange(applyModelTransform);
+fModel.add(modelTransform, 'posY', -5, 10, 0.01).name('Position Y').onChange(applyModelTransform);
+fModel.add(modelTransform, 'posZ', -10, 10, 0.01).name('Position Z').onChange(applyModelTransform);
+fModel.add(modelTransform, 'rotY', 0, 360, 1).name('Rotation Y°').onChange(applyModelTransform);
+
+const fAccum = fModel.addFolder('Snow Accumulation');
+fAccum.add(model.snow.uSnowCoverage, 'value', 0, 1, 0.01).name('Coverage');
+fAccum.add(model.snow.uSnowThickness, 'value', 0, 0.3, 0.001).name('Thickness');
+fAccum.add(model.snow.uSnowScale, 'value', 0.1, 4, 0.01).name('Patch Scale');
+fAccum.add(model.snow.uSnowEdge, 'value', 0.01, 0.4, 0.005).name('Patch Softness');
+fAccum.add(model.snow.uSnowSeed.value, 'x', -50, 50, 0.1).name('Seed X').listen();
+fAccum.add(model.snow.uSnowSeed.value, 'y', -50, 50, 0.1).name('Seed Y').listen();
+fAccum
+  .add(
+    {
+      randomize: () =>
+        model.snow.uSnowSeed.value.set(
+          (Math.random() - 0.5) * 100,
+          (Math.random() - 0.5) * 100
+        ),
+    },
+    'randomize'
+  )
+  .name('🎲 Randomize Seed');
+fAccum
+  .add(model.snow.uSnowFlatThreshold, 'value', 0, 1, 0.01)
+  .name('Flatness Cutoff');
+fAccum
+  .addColor({ c: '#eaf1ff' }, 'c')
+  .name('Snow Color')
+  .onChange((v) => model.snow.uSnowColor.value.set(v));
+fAccum.add(model.snow.uSnowRoughness, 'value', 0.3, 1, 0.01).name('Snow Roughness');
+fAccum.add(model.snow.uSnowBump, 'value', 0, 1.5, 0.01).name('Relief Strength');
+fAccum.add(model.snow.uSnowBumpScale, 'value', 0.5, 8, 0.05).name('Relief Scale');
+fAccum.add(model.snow.uSnowSparkle, 'value', 0, 1, 0.01).name('Sparkle');
+fAccum.add(model.snow.uSnowSparkleScale, 'value', 30, 300, 1).name('Sparkle Density');
+
+fAccum.close();
+fModel.close();
 
 const snowParams = { density: 0.5 };
 
