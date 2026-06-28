@@ -21,15 +21,18 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.0;
+renderer.toneMappingExposure = 0.5;
 
 /* -------------------------------------------------------------------------- */
 /*  Scene & Camera                                                             */
 /* -------------------------------------------------------------------------- */
 const scene = new THREE.Scene();
 // Cool, hazy winter night — slightly lifted from black so falling snow reads.
+// NOTE: fog blends each fragment toward the background by its distance FROM THE
+// CAMERA, so a heavy density visibly dims the scene as you zoom out. Kept light
+// here (and exposed in the GUI) so zooming doesn't read as a lighting change.
 scene.background = new THREE.Color(0x0a0e16);
-scene.fog = new THREE.FogExp2(0x0a0e16, 0.015);
+scene.fog = new THREE.FogExp2(0x0a0e16, 0.007);
 
 const camera = new THREE.PerspectiveCamera(
   45,
@@ -843,6 +846,18 @@ fLight.add(keyLight, 'intensity', 0, 8, 0.01).name('Key');
 fLight.add(fillLight, 'intensity', 0, 4, 0.01).name('Fill');
 fLight.add(rimLight, 'intensity', 0, 400, 1).name('Rim');
 fLight.add(scene, 'environmentIntensity', 0, 2, 0.01).name('Env / IBL');
+
+// Fog — heavier values dim the scene more as the camera pulls back, so keep it
+// light (or turn it off) if zooming reads as a lighting change.
+const fogState = { enabled: true, density: scene.fog.density };
+function applyFog() {
+  scene.fog.density = fogState.enabled ? fogState.density : 0;
+}
+fLight.add(fogState, 'enabled').name('Fog').onChange(applyFog);
+fLight
+  .add(fogState, 'density', 0, 0.03, 0.0005)
+  .name('Fog Density')
+  .onChange(applyFog);
 fLight.close();
 
 // --- Cinematic --------------------------------------------------------------
