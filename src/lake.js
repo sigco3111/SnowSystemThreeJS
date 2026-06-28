@@ -40,7 +40,7 @@ export function createLake({
     // --- Look controls -------------------------------------------------------
     uIceOpacity: { value: 1.0 }, // overall ice density
     uShallowColor: { value: new THREE.Color(0x9fc6d8) }, // thin ice near shore
-    uDeepColor: { value: new THREE.Color(0x123244) }, // deep water under ice
+    uDeepColor: { value: new THREE.Color(0x184762) }, // deep water under ice
     uReflectColor: { value: new THREE.Color(0xafc4e0) }, // cool sky reflection
     uReflectStrength: { value: 0.8 },
     uFresnelPower: { value: 3.5 },

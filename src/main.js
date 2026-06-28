@@ -196,7 +196,7 @@ const lakeUniforms = {
   uLakeShapeFreq: { value: 3.0 }, // number of primary lobes
   uLakeSeed: { value: 0.0 }, // rotate/vary the outline
   uLakeDepth: { value: 0.42 }, // how far the basin sinks below ground
-  uLakeBedColor: { value: new THREE.Color(0x0b2230) }, // dark water bed
+  uLakeBedColor: { value: new THREE.Color(0x33b1ff) }, // water bed tint
 };
 
 // Pure noise helpers (no uniforms) — reused by the ground AND the ice shader.
@@ -719,13 +719,13 @@ fShape.add(lakeUniforms.uLakeEdge, 'value', 0.005, 0.25, 0.005).name('Shore Soft
 // Basin & water depth.
 const fBasin = fLake.addFolder('Depth & Bed');
 fBasin.add(lakeUniforms.uLakeDepth, 'value', 0, 3, 0.01).name('Basin Depth');
-fBasin.addColor({ c: '#0b2230' }, 'c').name('Bed Color').onChange((v) => lakeUniforms.uLakeBedColor.value.set(v));
+fBasin.addColor({ c: '#33b1ff' }, 'c').name('Bed Color').onChange((v) => lakeUniforms.uLakeBedColor.value.set(v));
 
 // Ice surface look.
 const fIce = fLake.addFolder('Ice Surface');
 fIce.add(lake.uniforms.uIceOpacity, 'value', 0, 1, 0.01).name('Ice Opacity');
 fIce.addColor({ c: '#9fc6d8' }, 'c').name('Shallow Color').onChange((v) => lake.uniforms.uShallowColor.value.set(v));
-fIce.addColor({ c: '#123244' }, 'c').name('Deep Water Color').onChange((v) => lake.uniforms.uDeepColor.value.set(v));
+fIce.addColor({ c: '#184762' }, 'c').name('Deep Water Color').onChange((v) => lake.uniforms.uDeepColor.value.set(v));
 fIce.addColor({ c: '#afc4e0' }, 'c').name('Reflection Color').onChange((v) => lake.uniforms.uReflectColor.value.set(v));
 fIce.add(lake.uniforms.uReflectStrength, 'value', 0, 1.5, 0.01).name('Reflection Strength');
 fIce.add(lake.uniforms.uFresnelPower, 'value', 1, 8, 0.05).name('Fresnel Power');
