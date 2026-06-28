@@ -3,6 +3,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import GUI from 'lil-gui';
 import { createSnow } from './snow.js';
+import { createSnowAudio } from './snowAudio.js';
 import { createLake } from './lake.js';
 import { createModelSystem } from './model.js';
 import { createPostFX } from './postfx.js';
@@ -819,11 +820,18 @@ fModel.close();
 
 const snowParams = { density: 0.5 };
 
+// Ambient snowfall sound: muted at density 0, full volume at density 1.
+const snowAudio = createSnowAudio();
+snowAudio.setDensity(snowParams.density);
+
 const fSnow = gui.addFolder('Snowfall');
 fSnow
   .add(snowParams, 'density', 0, 1, 0.01)
   .name('Density')
-  .onChange((v) => snow.setDensity(v));
+  .onChange((v) => {
+    snow.setDensity(v);
+    snowAudio.setDensity(v);
+  });
 fSnow.add(snow.uniforms.uSpeed, 'value', 0.5, 12, 0.1).name('Fall Speed');
 fSnow.add(snow.uniforms.uSize, 'value', 0.01, 0.25, 0.001).name('Flake Size');
 fSnow.add(snow.uniforms.uSway, 'value', 0, 3, 0.01).name('Sway / Flutter');
