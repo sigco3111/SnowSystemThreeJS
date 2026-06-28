@@ -74,8 +74,11 @@ export function createSnow({ camera, sharedUniforms, maxCount = 30000 }) {
         vRand = aRand;
 
         vec3 vol = uVolume;
-        // Volume tracks the camera, biased upward so flakes fall into view.
-        vec3 origin = uCameraPos - vec3(vol.x * 0.5, vol.y * 0.85, vol.z * 0.5);
+        // Volume tracks the camera, centred on it so the snow surrounds the
+        // viewer and reads as falling from every angle (top, side or level) —
+        // not just when looking straight down. A slight upward bias keeps a
+        // little more snow above eye level so flakes fall *into* view.
+        vec3 origin = uCameraPos - vec3(vol.x * 0.5, vol.y * 0.4, vol.z * 0.5);
 
         float speed = uSpeed * (0.6 + 0.7 * aRand); // size/mass variation
         vec3 base = aSeed * vol;
