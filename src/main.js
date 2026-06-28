@@ -3,6 +3,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import GUI from 'lil-gui';
 import { createSnow } from './snow.js';
+import { createLake } from './lake.js';
 import { createPostFX } from './postfx.js';
 
 /* -------------------------------------------------------------------------- */
@@ -176,24 +177,26 @@ const snowUniforms = {
   uWind: shared.uWind,
 };
 
-// Shared GLSL injected into BOTH the vertex and fragment stages: the same
-// height field drives the geometry displacement (vertex) and the lit surface
-// normals (fragment), so the thick snow shades correctly on its own slopes.
-const SNOW_FUNCTIONS = /* glsl */ `
-uniform float uSnowScale;
-uniform vec2  uSnowSeed;
-uniform float uSnowCoverage;
-uniform float uSnowEdge;
-uniform vec3  uSnowColor;
-uniform float uSnowRoughness;
-uniform float uSnowDepth;
-uniform float uSnowBumpScale;
-uniform float uSnowBumpStrength;
-uniform float uSparkle;
-uniform float uSparkleScale;
-uniform float uTime;
-uniform vec3  uWind;
+/* -------------------------------------------------------------------------- */
+/*  Frozen lake — shared shape (ground basin + ice sheet read the same field)  */
+/* -------------------------------------------------------------------------- */
+//  These uniforms define ONE irregular blob in world space. The ground shader
+//  uses them to carve a basin (and clear the snow) and the ice mesh uses the
+//  exact same field to draw its outline + depth, so the two always line up.
+const lakeUniforms = {
+  uLakeEnabled: { value: 0 }, // 0/1 master toggle — off by default
+  uLakeCenter: { value: new THREE.Vector2(0, 0) }, // resize/grow from here
+  uLakeRadius: { value: 3.2 }, // base radius (world units)
+  uLakeEdge: { value: 0.25 }, // shoreline softness (fraction of radius)
+  uLakeShapeAmp: { value: 0.08 }, // 0 = perfect circle, higher = more lobed
+  uLakeShapeFreq: { value: 3.0 }, // number of primary lobes
+  uLakeSeed: { value: 0.0 }, // rotate/vary the outline
+  uLakeDepth: { value: 0.42 }, // how far the basin sinks below ground
+  uLakeBedColor: { value: new THREE.Color(0x0b2230) }, // dark water bed
+};
 
+// Pure noise helpers (no uniforms) — reused by the ground AND the ice shader.
+const NOISE_FUNCTIONS = /* glsl */ `
 // --- Ashima 2D simplex noise -------------------------------------------------
 vec3 permute(vec3 x) { return mod(((x * 34.0) + 1.0) * x, 289.0); }
 float snoise(vec2 v) {
@@ -219,7 +222,7 @@ float snoise(vec2 v) {
   return 130.0 * dot(m, g);
 }
 
-// Fractal Brownian motion for organic, blotchy snow drifts.
+// Fractal Brownian motion for organic, blotchy shapes.
 float fbm(vec2 p) {
   float value = 0.0;
   float amp = 0.5;
@@ -231,18 +234,35 @@ float fbm(vec2 p) {
   return value;
 }
 
+float hash21(vec2 p) {
+  p = fract(p * vec2(123.34, 345.45));
+  p += dot(p, p + 34.345);
+  return fract(p.x * p.y);
+}
+`;
+
+// Snow uniforms + masks + the snow height field (depends on NOISE_FUNCTIONS).
+const SNOW_FUNCTIONS = /* glsl */ `
+uniform float uSnowScale;
+uniform vec2  uSnowSeed;
+uniform float uSnowCoverage;
+uniform float uSnowEdge;
+uniform vec3  uSnowColor;
+uniform float uSnowRoughness;
+uniform float uSnowDepth;
+uniform float uSnowBumpScale;
+uniform float uSnowBumpStrength;
+uniform float uSparkle;
+uniform float uSparkleScale;
+uniform float uTime;
+uniform vec3  uWind;
+
 // Returns 0 (bare asphalt) .. 1 (deep snow) for a world-space XZ position.
 float snowMaskAt(vec2 worldXZ) {
   vec2 p = worldXZ * uSnowScale + uSnowSeed;
   float n = fbm(p) * 0.5 + 0.5;               // -> 0..1
   float threshold = 1.0 - uSnowCoverage;      // more coverage = lower bar
   return smoothstep(threshold - uSnowEdge, threshold + uSnowEdge, n);
-}
-
-float hash21(vec2 p) {
-  p = fract(p * vec2(123.34, 345.45));
-  p += dot(p, p + 34.345);
-  return fract(p.x * p.y);
 }
 
 // Height of the snow surface above the bare asphalt, in world units. A base
@@ -259,33 +279,86 @@ float snowHeightAt(vec2 worldXZ) {
   return uSnowDepth * h * edge.x * edge.y;
 }
 
-// Surface normal of the displaced snow, from the gradient of the height field.
-vec3 snowSurfaceNormal(vec2 worldXZ) {
+`;
+
+// --- Frozen-lake field, shared verbatim by the ground shader and the ice mesh.
+// Defines an irregular blob (angular harmonics) plus a smooth basin profile.
+const LAKE_FUNCTIONS = /* glsl */ `
+uniform float uLakeEnabled;
+uniform vec2  uLakeCenter;
+uniform float uLakeRadius;
+uniform float uLakeEdge;
+uniform float uLakeShapeAmp;
+uniform float uLakeShapeFreq;
+uniform float uLakeSeed;
+uniform float uLakeDepth;
+uniform vec3  uLakeBedColor;
+
+// Irregular shoreline radius for a given angle (a few harmonics -> organic blob).
+float lakeRadiusAt(float ang) {
+  float w  = 1.00 * sin(ang * uLakeShapeFreq + uLakeSeed);
+  w       += 0.50 * sin(ang * (uLakeShapeFreq * 2.0 + 1.0) - uLakeSeed * 1.3);
+  w       += 0.25 * sin(ang * (uLakeShapeFreq * 3.0 + 2.0) + uLakeSeed * 2.1);
+  w /= 1.75; // -> roughly [-1, 1]
+  return uLakeRadius * (1.0 + uLakeShapeAmp * w);
+}
+
+// 0 outside .. 1 inside, with a soft, irregular shoreline.
+float lakeInsideAt(vec2 worldXZ) {
+  if (uLakeEnabled < 0.5) return 0.0;
+  vec2  d = worldXZ - uLakeCenter;
+  float r = length(d);
+  float R = lakeRadiusAt(atan(d.y, d.x));
+  float edge = R * uLakeEdge + 0.001;
+  return 1.0 - smoothstep(R - edge, R + edge, r);
+}
+
+// 0 at the shore .. 1 at the deepest water — a flat-bottomed bowl.
+float lakeDepth01(vec2 worldXZ) {
+  return smoothstep(0.0, 0.82, lakeInsideAt(worldXZ));
+}
+`;
+
+// --- Combined ground height: snow MINUS the carved lake basin, plus normals.
+const GROUND_FUNCTIONS = /* glsl */ `
+// Master height field: snow blanket (cleared over the lake) minus the basin.
+float groundHeightAt(vec2 worldXZ) {
+  float inside = lakeInsideAt(worldXZ);
+  float snow = snowHeightAt(worldXZ) * (1.0 - inside);   // no snow on the ice
+  float basin = uLakeDepth * lakeDepth01(worldXZ);        // sink the lakebed
+  return snow - basin;
+}
+
+vec3 groundSurfaceNormal(vec2 worldXZ) {
   float e = 0.08;
-  float h0 = snowHeightAt(worldXZ);
-  float hx = snowHeightAt(worldXZ + vec2(e, 0.0));
-  float hz = snowHeightAt(worldXZ + vec2(0.0, e));
+  float h0 = groundHeightAt(worldXZ);
+  float hx = groundHeightAt(worldXZ + vec2(e, 0.0));
+  float hz = groundHeightAt(worldXZ + vec2(0.0, e));
   vec2 grad = vec2(hx - h0, hz - h0) / e;
   return normalize(vec3(-grad.x, 1.0, -grad.y));
 }
 `;
 
-material.onBeforeCompile = (shader) => {
-  Object.assign(shader.uniforms, snowUniforms);
+// Everything the ground material injects, in dependency order.
+const GROUND_INJECT =
+  NOISE_FUNCTIONS + SNOW_FUNCTIONS + LAKE_FUNCTIONS + GROUND_FUNCTIONS;
 
-  // Vertex: inject the height field, then displace the plane upward by it so the
-  // snow has real geometric thickness. World XZ is read from the un-displaced
-  // position (displacement is purely vertical, so XZ is unaffected).
+material.onBeforeCompile = (shader) => {
+  Object.assign(shader.uniforms, snowUniforms, lakeUniforms);
+
+  // Vertex: inject the height field, then displace the plane by it — snow rises,
+  // the lake basin sinks. World XZ is read from the un-displaced position
+  // (displacement is purely vertical, so XZ is unaffected).
   shader.vertexShader = shader.vertexShader
     .replace(
       '#include <common>',
-      '#include <common>\nvarying vec3 vWorldPosition;\n' + SNOW_FUNCTIONS
+      '#include <common>\nvarying vec3 vWorldPosition;\n' + GROUND_INJECT
     )
     .replace(
       '#include <begin_vertex>',
       `#include <begin_vertex>
-      vec2 snowXZ = (modelMatrix * vec4(transformed, 1.0)).xz;
-      transformed += normalize(objectNormal) * snowHeightAt(snowXZ);
+      vec2 groundXZ = (modelMatrix * vec4(transformed, 1.0)).xz;
+      transformed += normalize(objectNormal) * groundHeightAt(groundXZ);
       vWorldPosition = (modelMatrix * vec4(transformed, 1.0)).xyz;`
     );
 
@@ -293,13 +366,14 @@ material.onBeforeCompile = (shader) => {
     // Inject noise helpers + uniforms (keeps the original <common> include).
     .replace(
       '#include <common>',
-      '#include <common>\nvarying vec3 vWorldPosition;\n' + SNOW_FUNCTIONS
+      '#include <common>\nvarying vec3 vWorldPosition;\n' + GROUND_INJECT
     )
-    // Compute the mask once and lift the albedo toward snow where it's settled.
+    // Snow albedo where it has settled, then the dark lakebed inside the basin.
     .replace(
       '#include <map_fragment>',
       `#include <map_fragment>
-      float snowMask = snowMaskAt(vWorldPosition.xz);
+      float lakeIn = lakeInsideAt(vWorldPosition.xz);
+      float snowMask = snowMaskAt(vWorldPosition.xz) * (1.0 - lakeIn);
       // Subtle brightness variation across the blanket so it isn't a flat fill.
       float snowShade = 0.85 + 0.15 * (fbm(vWorldPosition.xz * uSnowBumpScale * 2.0) * 0.5 + 0.5);
       vec3 snowAlbedo = uSnowColor * snowShade;
@@ -308,23 +382,28 @@ material.onBeforeCompile = (shader) => {
       float twinkle = 0.5 + 0.5 * sin(uTime * 3.0 + sp * 30.0);
       float sparkle = step(0.985, sp) * twinkle * uSparkle;
       snowAlbedo += sparkle;
-      diffuseColor.rgb = mix(diffuseColor.rgb, snowAlbedo, snowMask);`
+      diffuseColor.rgb = mix(diffuseColor.rgb, snowAlbedo, snowMask);
+      // Lakebed: darken toward the deep centre so the depth reads through the ice.
+      vec3 bed = uLakeBedColor * (1.0 - 0.6 * lakeDepth01(vWorldPosition.xz));
+      diffuseColor.rgb = mix(diffuseColor.rgb, bed, lakeIn);`
     )
-    // Snow is matte; sparkle specks drop to near-mirror to glint.
+    // Snow is matte; sparkle specks glint; the wet lakebed sits in between.
     .replace(
       '#include <roughnessmap_fragment>',
       `#include <roughnessmap_fragment>
       roughnessFactor = mix(roughnessFactor, uSnowRoughness, snowMask);
-      roughnessFactor = mix(roughnessFactor, 0.08, sparkle * snowMask);`
+      roughnessFactor = mix(roughnessFactor, 0.08, sparkle * snowMask);
+      roughnessFactor = mix(roughnessFactor, 0.55, lakeIn);`
     )
-    // Shade the snow with the normal of its own displaced surface (drift slopes
-    // + banked melt-line edges), blended in by the coverage mask.
+    // Shade with the normal of the displaced surface (drift slopes, banked
+    // shorelines, basin walls), blended in wherever the ground deviates from flat.
     .replace(
       '#include <normal_fragment_maps>',
       `#include <normal_fragment_maps>
-      vec3 snowN = snowSurfaceNormal(vWorldPosition.xz);
-      vec3 snowView = normalize((viewMatrix * vec4(snowN, 0.0)).xyz);
-      normal = normalize(mix(normal, snowView, snowMask));`
+      vec3 gN = groundSurfaceNormal(vWorldPosition.xz);
+      vec3 gView = normalize((viewMatrix * vec4(gN, 0.0)).xyz);
+      float surfaceBlend = clamp(snowMask + lakeIn, 0.0, 1.0);
+      normal = normalize(mix(normal, gView, surfaceBlend));`
     );
 };
 // Distinct cache key so this program isn't shared with a plain StandardMaterial.
@@ -349,6 +428,19 @@ scene.add(plane);
 /* -------------------------------------------------------------------------- */
 const snow = createSnow({ camera, sharedUniforms: shared });
 scene.add(snow.mesh);
+
+/* -------------------------------------------------------------------------- */
+/*  Frozen lake (ice sheet over the carved basin)                              */
+/* -------------------------------------------------------------------------- */
+const lake = createLake({
+  lakeUniforms,
+  sharedUniforms: shared,
+  noiseGLSL: NOISE_FUNCTIONS,
+  lakeGLSL: LAKE_FUNCTIONS,
+  sunDir: keyLight.position, // direction toward the key light, for the glint
+  sunColor: keyLight.color,
+});
+scene.add(lake.mesh);
 
 /* -------------------------------------------------------------------------- */
 /*  Wind                                                                       */
@@ -557,6 +649,66 @@ fSnowGround
   .name('Sparkle Density');
 fSnowGround.close();
 
+/* --- Frozen lake ----------------------------------------------------------- */
+// Master toggle drives the shared uLakeEnabled (carves the ground + shows ice).
+const lakeState = { enabled: false };
+const fLake = gui.addFolder('🧊 Frozen Lake');
+fLake
+  .add(lakeState, 'enabled')
+  .name('Enabled')
+  .onChange((v) => {
+    lakeUniforms.uLakeEnabled.value = v ? 1 : 0;
+    lake.applyShape();
+  });
+
+// Shape & size — every change re-fits the ice disc to the new outline.
+const reshape = () => lake.applyShape();
+const fShape = fLake.addFolder('Shape & Size');
+fShape.add(lakeUniforms.uLakeRadius, 'value', 1, 9, 0.05).name('Size (radius)').onChange(reshape);
+fShape.add(lakeUniforms.uLakeCenter.value, 'x', -8, 8, 0.05).name('Center X').onChange(reshape);
+fShape.add(lakeUniforms.uLakeCenter.value, 'y', -8, 8, 0.05).name('Center Z').onChange(reshape);
+fShape.add(lakeUniforms.uLakeShapeAmp, 'value', 0, 0.6, 0.01).name('Irregularity').onChange(reshape);
+fShape.add(lakeUniforms.uLakeShapeFreq, 'value', 1, 8, 1).name('Lobes').onChange(reshape);
+fShape.add(lakeUniforms.uLakeSeed, 'value', 0, 20, 0.01).name('Shape Seed').listen();
+fShape
+  .add(
+    { randomize: () => { lakeUniforms.uLakeSeed.value = Math.random() * 20; } },
+    'randomize'
+  )
+  .name('🎲 Randomize Shape');
+fShape.add(lakeUniforms.uLakeEdge, 'value', 0.005, 0.25, 0.005).name('Shore Softness');
+
+// Basin & water depth.
+const fBasin = fLake.addFolder('Depth & Bed');
+fBasin.add(lakeUniforms.uLakeDepth, 'value', 0, 3, 0.01).name('Basin Depth');
+fBasin.addColor({ c: '#0b2230' }, 'c').name('Bed Color').onChange((v) => lakeUniforms.uLakeBedColor.value.set(v));
+
+// Ice surface look.
+const fIce = fLake.addFolder('Ice Surface');
+fIce.add(lake.uniforms.uIceOpacity, 'value', 0, 1, 0.01).name('Ice Opacity');
+fIce.addColor({ c: '#9fc6d8' }, 'c').name('Shallow Color').onChange((v) => lake.uniforms.uShallowColor.value.set(v));
+fIce.addColor({ c: '#123244' }, 'c').name('Deep Water Color').onChange((v) => lake.uniforms.uDeepColor.value.set(v));
+fIce.addColor({ c: '#afc4e0' }, 'c').name('Reflection Color').onChange((v) => lake.uniforms.uReflectColor.value.set(v));
+fIce.add(lake.uniforms.uReflectStrength, 'value', 0, 1.5, 0.01).name('Reflection Strength');
+fIce.add(lake.uniforms.uFresnelPower, 'value', 1, 8, 0.05).name('Fresnel Power');
+fIce.add(lake.uniforms.uGlint, 'value', 0, 2, 0.01).name('Sun Glint');
+fIce.add(lake.uniforms.uSurfaceRipple, 'value', 0, 1, 0.01).name('Surface Unevenness');
+fIce.add(lake.uniforms.uRippleScale, 'value', 0.5, 8, 0.05).name('Surface Scale');
+
+const fDetail = fLake.addFolder('Cracks · Frost · Bubbles');
+fDetail.add(lake.uniforms.uCrackAmount, 'value', 0, 1, 0.01).name('Crack Amount');
+fDetail.add(lake.uniforms.uCrackScale, 'value', 0.3, 5, 0.05).name('Crack Scale');
+fDetail.add(lake.uniforms.uFrost, 'value', 0, 1, 0.01).name('Shore Frost');
+fDetail.add(lake.uniforms.uFrostWidth, 'value', 0.05, 0.8, 0.01).name('Frost Width');
+fDetail.add(lake.uniforms.uBubbleAmount, 'value', 0, 1, 0.01).name('Bubble Amount');
+fDetail.add(lake.uniforms.uBubbleScale, 'value', 8, 60, 0.5).name('Bubble Density');
+
+fShape.close();
+fBasin.close();
+fIce.close();
+fDetail.close();
+fLake.close();
+
 const snowParams = { density: 0.5 };
 
 const fSnow = gui.addFolder('Snowfall');
@@ -640,6 +792,7 @@ renderer.setAnimationLoop(() => {
 
   controls.update();
   snow.update();
+  lake.update(camera.position);
   updateFocusPlane(dt);
 
   fx.render(dt);
