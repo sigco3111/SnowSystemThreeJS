@@ -44,7 +44,7 @@ export function createSnow({ camera, sharedUniforms, maxCount = 30000 }) {
     uVolume: { value: new THREE.Vector3(50, 40, 50) },
     uSpeed: { value: 3.2 }, // fall speed — snow is slow
     uSize: { value: 0.07 }, // flake radius (world units)
-    uSway: { value: 1.1 }, // horizontal wobble amplitude
+    uSway: { value: 0.5 }, // horizontal wobble amplitude (kept below fall speed)
     uOpacity: { value: 0.9 },
     uColor: { value: new THREE.Color(0xffffff) },
   };
@@ -83,11 +83,13 @@ export function createSnow({ camera, sharedUniforms, maxCount = 30000 }) {
         // Per-flake phase so every flake sways out of step with its neighbours.
         float phase = aRand * 6.2831853;
         float t = uTime;
-        // Gentle two-axis meander: a slow figure-eight flutter on top of wind.
+        // Gentle figure-eight flutter on top of the wind. Kept slow and small so
+        // the horizontal drift speed stays well below the fall speed — i.e. with
+        // no wind the snow still clearly reads as falling straight down.
         vec3 sway = vec3(
-          sin(t * 1.3 + phase) + 0.5 * sin(t * 2.7 + phase * 1.7),
+          sin(t * 0.7 + phase) + 0.35 * sin(t * 1.6 + phase * 1.7),
           0.0,
-          cos(t * 1.1 + phase) + 0.5 * cos(t * 2.3 + phase * 1.3)
+          cos(t * 0.6 + phase) + 0.35 * cos(t * 1.3 + phase * 1.3)
         ) * uSway * (0.4 + 0.6 * aRand);
 
         vec3 disp = vec3(uWind.x, -speed, uWind.z) * t + sway;
