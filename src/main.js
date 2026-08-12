@@ -98,8 +98,8 @@ scene.add(ambient);
 /* -------------------------------------------------------------------------- */
 // Each entry only differs by folder + filename prefix; the map suffixes match.
 const MATERIALS = {
-  'Asphalt 025C': { dir: '/Material_1/', prefix: 'Asphalt025C_1K-JPG_' },
-  'Asphalt 024A': { dir: '/Material_2/', prefix: 'Asphalt024A_1K-JPG_' },
+  'Asphalt 025C': { dir: `${import.meta.env.BASE_URL}Material_1/`, prefix: 'Asphalt025C_1K-JPG_' },
+  'Asphalt 024A': { dir: `${import.meta.env.BASE_URL}Material_2/`, prefix: 'Asphalt024A_1K-JPG_' },
 };
 
 const loader = new THREE.TextureLoader();
@@ -452,8 +452,8 @@ scene.add(lake.mesh);
 /*  Model (default GLB + user import) — snow accumulates on its upward faces    */
 /* -------------------------------------------------------------------------- */
 const MODELS = {
-  'Rusty Car': '/old_rusty_car_2.glb',
-  'Porsche 911': '/porsche_911.glb',
+  'Rusty Car': `${import.meta.env.BASE_URL}old_rusty_car_2.glb`,
+  'Porsche 911': `${import.meta.env.BASE_URL}porsche_911.glb`,
 };
 const model = createModelSystem({
   scene,
