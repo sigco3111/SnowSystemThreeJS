@@ -7,6 +7,7 @@ import { createSnowAudio } from './snowAudio.js';
 import { createLake } from './lake.js';
 import { createModelSystem } from './model.js';
 import { createPostFX } from './postfx.js';
+import { t, setLanguage } from './i18n.js';
 
 /* -------------------------------------------------------------------------- */
 /*  Renderer                                                                   */
@@ -584,46 +585,46 @@ function applyTextureScale(scale) {
 // Initial load — builds the textures and applies the current tiling.
 loadMaterial(matSettings.active);
 
-const gui = new GUI({ title: '❄️ Snow Studio' });
+const gui = new GUI({ title: t('guiTitle') });
 
-const fMat = gui.addFolder('Material');
+const fMat = gui.addFolder(t('folderMaterial'));
 fMat
   .add(matSettings, 'active', Object.keys(MATERIALS))
-  .name('Material')
+  .name(t('material'))
   .onChange(loadMaterial);
 fMat
   .add(params, 'textureScale', 0.5, 20, 0.1)
-  .name('Texture Scale')
+  .name(t('textureScale'))
   .onChange(applyTextureScale);
 fMat
   .add(params, 'normalIntensity', 0, 3, 0.01)
-  .name('Normal Intensity')
+  .name(t('normalIntensity'))
   .onChange((v) => material.normalScale.set(v, v));
 fMat
   .add(params, 'aoIntensity', 0, 3, 0.01)
-  .name('AO Intensity')
+  .name(t('aoIntensity'))
   .onChange((v) => (material.aoMapIntensity = v));
 fMat
   .add(params, 'roughnessIntensity', 0, 2, 0.01)
-  .name('Roughness Intensity')
+  .name(t('roughnessIntensity'))
   .onChange((v) => (material.roughness = v));
 fMat
   .add(params, 'displacementScale', 0, 1, 0.001)
-  .name('Displacement')
+  .name(t('displacement'))
   .onChange((v) => (material.displacementScale = v));
 fMat.close();
 
-const fSnowGround = gui.addFolder('Snow on Ground');
+const fSnowGround = gui.addFolder(t('folderSnowGround'));
 fSnowGround
   .add(snowUniforms.uSnowScale, 'value', 0.02, 0.8, 0.001)
-  .name('Drift Scale');
+  .name(t('snowDriftScale'));
 fSnowGround
   .add(snowUniforms.uSnowSeed.value, 'x', -50, 50, 0.1)
-  .name('Seed X')
+  .name(t('snowSeedX'))
   .listen();
 fSnowGround
   .add(snowUniforms.uSnowSeed.value, 'y', -50, 50, 0.1)
-  .name('Seed Y')
+  .name(t('snowSeedY'))
   .listen();
 fSnowGround
   .add(
@@ -636,35 +637,35 @@ fSnowGround
     },
     'randomize'
   )
-  .name('🎲 Randomize Seed');
+  .name(t('snowRandomize'));
 fSnowGround
   .add(snowUniforms.uSnowCoverage, 'value', 0, 1, 0.01)
-  .name('Coverage');
+  .name(t('snowCoverage'));
 fSnowGround
   .add(snowUniforms.uSnowEdge, 'value', 0.001, 0.4, 0.001)
-  .name('Melt-line Softness');
+  .name(t('snowMeltLineSoftness'));
 fSnowGround
   .addColor({ c: '#eaf1ff' }, 'c')
-  .name('Snow Color')
+  .name(t('snowColor'))
   .onChange((v) => snowUniforms.uSnowColor.value.set(v));
 fSnowGround
   .add(snowUniforms.uSnowRoughness, 'value', 0.3, 1, 0.01)
-  .name('Snow Roughness');
+  .name(t('snowRoughness'));
 fSnowGround
   .add(snowUniforms.uSnowDepth, 'value', 0, 3, 0.01)
-  .name('Snow Depth');
+  .name(t('snowDepth'));
 fSnowGround
   .add(snowUniforms.uSnowBumpScale, 'value', 0.1, 3, 0.01)
-  .name('Drift Bump Scale');
+  .name(t('snowDriftBumpScale'));
 fSnowGround
   .add(snowUniforms.uSnowBumpStrength, 'value', 0, 2, 0.01)
-  .name('Drift Bump Strength');
+  .name(t('snowDriftBumpStrength'));
 fSnowGround
   .add(snowUniforms.uSparkle, 'value', 0, 1, 0.01)
-  .name('Sparkle');
+  .name(t('snowSparkle'));
 fSnowGround
   .add(snowUniforms.uSparkleScale, 'value', 20, 300, 1)
-  .name('Sparkle Density');
+  .name(t('snowSparkleDensity'));
 fSnowGround.close();
 
 /* --- Lake / model mutual exclusion ----------------------------------------- */
@@ -694,53 +695,53 @@ function setModelShown(v) {
 
 /* --- Frozen lake ----------------------------------------------------------- */
 // Master toggle drives the shared uLakeEnabled (carves the ground + shows ice).
-const fLake = gui.addFolder('🧊 Frozen Lake');
+const fLake = gui.addFolder(t('folderLake'));
 lakeEnabledCtrl = fLake
   .add(lakeState, 'enabled')
-  .name('Enabled')
+  .name(t('lakeEnabled'))
   .onChange(setLakeEnabled);
 
 // Shape & size — every change re-fits the ice disc to the new outline.
 const reshape = () => lake.applyShape();
-const fShape = fLake.addFolder('Shape & Size');
-fShape.add(lakeUniforms.uLakeRadius, 'value', 1, 9, 0.05).name('Size (radius)').onChange(reshape);
-fShape.add(lakeUniforms.uLakeCenter.value, 'x', -8, 8, 0.05).name('Center X').onChange(reshape);
-fShape.add(lakeUniforms.uLakeCenter.value, 'y', -8, 8, 0.05).name('Center Z').onChange(reshape);
-fShape.add(lakeUniforms.uLakeShapeAmp, 'value', 0, 0.6, 0.01).name('Irregularity').onChange(reshape);
-fShape.add(lakeUniforms.uLakeShapeFreq, 'value', 1, 8, 1).name('Lobes').onChange(reshape);
-fShape.add(lakeUniforms.uLakeSeed, 'value', 0, 20, 0.01).name('Shape Seed').listen();
+const fShape = fLake.addFolder(t('folderLakeShape'));
+fShape.add(lakeUniforms.uLakeRadius, 'value', 1, 9, 0.05).name(t('lakeSize')).onChange(reshape);
+fShape.add(lakeUniforms.uLakeCenter.value, 'x', -8, 8, 0.05).name(t('lakeCenterX')).onChange(reshape);
+fShape.add(lakeUniforms.uLakeCenter.value, 'y', -8, 8, 0.05).name(t('lakeCenterZ')).onChange(reshape);
+fShape.add(lakeUniforms.uLakeShapeAmp, 'value', 0, 0.6, 0.01).name(t('lakeIrregularity')).onChange(reshape);
+fShape.add(lakeUniforms.uLakeShapeFreq, 'value', 1, 8, 1).name(t('lakeLobes')).onChange(reshape);
+fShape.add(lakeUniforms.uLakeSeed, 'value', 0, 20, 0.01).name(t('lakeShapeSeed')).listen();
 fShape
   .add(
     { randomize: () => { lakeUniforms.uLakeSeed.value = Math.random() * 20; } },
     'randomize'
   )
-  .name('🎲 Randomize Shape');
-fShape.add(lakeUniforms.uLakeEdge, 'value', 0.005, 0.25, 0.005).name('Shore Softness');
+  .name(t('lakeRandomizeShape'));
+fShape.add(lakeUniforms.uLakeEdge, 'value', 0.005, 0.25, 0.005).name(t('lakeShoreSoftness'));
 
 // Basin & water depth.
-const fBasin = fLake.addFolder('Depth & Bed');
-fBasin.add(lakeUniforms.uLakeDepth, 'value', 0, 3, 0.01).name('Basin Depth');
-fBasin.addColor({ c: '#33b1ff' }, 'c').name('Bed Color').onChange((v) => lakeUniforms.uLakeBedColor.value.set(v));
+const fBasin = fLake.addFolder(t('folderLakeBasin'));
+fBasin.add(lakeUniforms.uLakeDepth, 'value', 0, 3, 0.01).name(t('lakeBasinDepth'));
+fBasin.addColor({ c: '#33b1ff' }, 'c').name(t('lakeBedColor')).onChange((v) => lakeUniforms.uLakeBedColor.value.set(v));
 
 // Ice surface look.
-const fIce = fLake.addFolder('Ice Surface');
-fIce.add(lake.uniforms.uIceOpacity, 'value', 0, 1, 0.01).name('Ice Opacity');
-fIce.addColor({ c: '#9fc6d8' }, 'c').name('Shallow Color').onChange((v) => lake.uniforms.uShallowColor.value.set(v));
-fIce.addColor({ c: '#184762' }, 'c').name('Deep Water Color').onChange((v) => lake.uniforms.uDeepColor.value.set(v));
-fIce.addColor({ c: '#afc4e0' }, 'c').name('Reflection Color').onChange((v) => lake.uniforms.uReflectColor.value.set(v));
-fIce.add(lake.uniforms.uReflectStrength, 'value', 0, 1.5, 0.01).name('Reflection Strength');
-fIce.add(lake.uniforms.uFresnelPower, 'value', 1, 8, 0.05).name('Fresnel Power');
-fIce.add(lake.uniforms.uGlint, 'value', 0, 2, 0.01).name('Sun Glint');
-fIce.add(lake.uniforms.uSurfaceRipple, 'value', 0, 1, 0.01).name('Surface Unevenness');
-fIce.add(lake.uniforms.uRippleScale, 'value', 0.5, 8, 0.05).name('Surface Scale');
+const fIce = fLake.addFolder(t('folderLakeIce'));
+fIce.add(lake.uniforms.uIceOpacity, 'value', 0, 1, 0.01).name(t('lakeIceOpacity'));
+fIce.addColor({ c: '#9fc6d8' }, 'c').name(t('lakeShallowColor')).onChange((v) => lake.uniforms.uShallowColor.value.set(v));
+fIce.addColor({ c: '#184762' }, 'c').name(t('lakeDeepWaterColor')).onChange((v) => lake.uniforms.uDeepColor.value.set(v));
+fIce.addColor({ c: '#afc4e0' }, 'c').name(t('lakeReflectionColor')).onChange((v) => lake.uniforms.uReflectColor.value.set(v));
+fIce.add(lake.uniforms.uReflectStrength, 'value', 0, 1.5, 0.01).name(t('lakeReflectionStrength'));
+fIce.add(lake.uniforms.uFresnelPower, 'value', 1, 8, 0.05).name(t('lakeFresnelPower'));
+fIce.add(lake.uniforms.uGlint, 'value', 0, 2, 0.01).name(t('lakeSunGlint'));
+fIce.add(lake.uniforms.uSurfaceRipple, 'value', 0, 1, 0.01).name(t('lakeSurfaceUnevenness'));
+fIce.add(lake.uniforms.uRippleScale, 'value', 0.5, 8, 0.05).name(t('lakeSurfaceScale'));
 
-const fDetail = fLake.addFolder('Cracks · Frost · Bubbles');
-fDetail.add(lake.uniforms.uCrackAmount, 'value', 0, 1, 0.01).name('Crack Amount');
-fDetail.add(lake.uniforms.uCrackScale, 'value', 0.3, 5, 0.05).name('Crack Scale');
-fDetail.add(lake.uniforms.uFrost, 'value', 0, 1, 0.01).name('Shore Frost');
-fDetail.add(lake.uniforms.uFrostWidth, 'value', 0.05, 0.8, 0.01).name('Frost Width');
-fDetail.add(lake.uniforms.uBubbleAmount, 'value', 0, 1, 0.01).name('Bubble Amount');
-fDetail.add(lake.uniforms.uBubbleScale, 'value', 8, 60, 0.5).name('Bubble Density');
+const fDetail = fLake.addFolder(t('folderLakeDetail'));
+fDetail.add(lake.uniforms.uCrackAmount, 'value', 0, 1, 0.01).name(t('lakeCrackAmount'));
+fDetail.add(lake.uniforms.uCrackScale, 'value', 0.3, 5, 0.05).name(t('lakeCrackScale'));
+fDetail.add(lake.uniforms.uFrost, 'value', 0, 1, 0.01).name(t('lakeShoreFrost'));
+fDetail.add(lake.uniforms.uFrostWidth, 'value', 0.05, 0.8, 0.01).name(t('lakeFrostWidth'));
+fDetail.add(lake.uniforms.uBubbleAmount, 'value', 0, 1, 0.01).name(t('lakeBubbleAmount'));
+fDetail.add(lake.uniforms.uBubbleScale, 'value', 8, 60, 0.5).name(t('lakeBubbleDensity'));
 
 fShape.close();
 fBasin.close();
@@ -749,16 +750,16 @@ fDetail.close();
 fLake.close();
 
 /* --- Model + snow accumulation --------------------------------------------- */
-const fModel = gui.addFolder('🚗 Model');
+const fModel = gui.addFolder(t('folderModel'));
 modelShownCtrl = fModel
   .add(appState, 'showModel')
-  .name('Load Model')
+  .name(t('loadModel'))
   .onChange(setModelShown);
 
 const modelSelect = { active: 'Rusty Car' };
 fModel
   .add(modelSelect, 'active', Object.keys(MODELS))
-  .name('Model')
+  .name(t('modelPick'))
   .onChange((k) => model.loadModel(MODELS[k]));
 
 const fileInput = document.getElementById('glb-input');
@@ -767,7 +768,7 @@ fileInput.addEventListener('change', (e) => {
   if (file) model.importFile(file);
   fileInput.value = ''; // allow re-importing the same file
 });
-fModel.add({ import: () => fileInput.click() }, 'import').name('📂 Import GLB…');
+fModel.add({ import: () => fileInput.click() }, 'import').name(t('importGlb'));
 
 // Transform — every change re-syncs the world->model matrix so the snow stays put.
 const modelTransform = { scale: 1, posX: 0, posY: 0, posZ: 0, rotY: 0 };
@@ -777,19 +778,19 @@ function applyModelTransform() {
   model.group.rotation.y = THREE.MathUtils.degToRad(modelTransform.rotY);
   model.refreshMatrix();
 }
-fModel.add(modelTransform, 'scale', 0.05, 10, 0.01).name('Scale').onChange(applyModelTransform);
-fModel.add(modelTransform, 'posX', -10, 10, 0.01).name('Position X').onChange(applyModelTransform);
-fModel.add(modelTransform, 'posY', -5, 10, 0.01).name('Position Y').onChange(applyModelTransform);
-fModel.add(modelTransform, 'posZ', -10, 10, 0.01).name('Position Z').onChange(applyModelTransform);
-fModel.add(modelTransform, 'rotY', 0, 360, 1).name('Rotation Y°').onChange(applyModelTransform);
+fModel.add(modelTransform, 'scale', 0.05, 10, 0.01).name(t('modelScale')).onChange(applyModelTransform);
+fModel.add(modelTransform, 'posX', -10, 10, 0.01).name(t('modelPosX')).onChange(applyModelTransform);
+fModel.add(modelTransform, 'posY', -5, 10, 0.01).name(t('modelPosY')).onChange(applyModelTransform);
+fModel.add(modelTransform, 'posZ', -10, 10, 0.01).name(t('modelPosZ')).onChange(applyModelTransform);
+fModel.add(modelTransform, 'rotY', 0, 360, 1).name(t('modelRotY')).onChange(applyModelTransform);
 
-const fAccum = fModel.addFolder('Snow Accumulation');
-fAccum.add(model.snow.uSnowCoverage, 'value', 0, 1, 0.01).name('Coverage');
-fAccum.add(model.snow.uSnowThickness, 'value', 0, 0.3, 0.001).name('Thickness');
-fAccum.add(model.snow.uSnowScale, 'value', 0.1, 4, 0.01).name('Patch Scale');
-fAccum.add(model.snow.uSnowEdge, 'value', 0.01, 0.4, 0.005).name('Patch Softness');
-fAccum.add(model.snow.uSnowSeed.value, 'x', -50, 50, 0.1).name('Seed X').listen();
-fAccum.add(model.snow.uSnowSeed.value, 'y', -50, 50, 0.1).name('Seed Y').listen();
+const fAccum = fModel.addFolder(t('folderAccum'));
+fAccum.add(model.snow.uSnowCoverage, 'value', 0, 1, 0.01).name(t('accumCoverage'));
+fAccum.add(model.snow.uSnowThickness, 'value', 0, 0.3, 0.001).name(t('accumThickness'));
+fAccum.add(model.snow.uSnowScale, 'value', 0.1, 4, 0.01).name(t('accumScale'));
+fAccum.add(model.snow.uSnowEdge, 'value', 0.01, 0.4, 0.005).name(t('accumPatchSoftness'));
+fAccum.add(model.snow.uSnowSeed.value, 'x', -50, 50, 0.1).name(t('accumSeedX')).listen();
+fAccum.add(model.snow.uSnowSeed.value, 'y', -50, 50, 0.1).name(t('accumSeedY')).listen();
 fAccum
   .add(
     {
@@ -801,19 +802,19 @@ fAccum
     },
     'randomize'
   )
-  .name('🎲 Randomize Seed');
+  .name(t('accumRandomize'));
 fAccum
   .add(model.snow.uSnowFlatThreshold, 'value', 0, 1, 0.01)
-  .name('Flatness Cutoff');
+  .name(t('accumFlatnessCutoff'));
 fAccum
   .addColor({ c: '#eaf1ff' }, 'c')
-  .name('Snow Color')
+  .name(t('accumSnowColor'))
   .onChange((v) => model.snow.uSnowColor.value.set(v));
-fAccum.add(model.snow.uSnowRoughness, 'value', 0.3, 1, 0.01).name('Snow Roughness');
-fAccum.add(model.snow.uSnowBump, 'value', 0, 1.5, 0.01).name('Relief Strength');
-fAccum.add(model.snow.uSnowBumpScale, 'value', 0.5, 8, 0.05).name('Relief Scale');
-fAccum.add(model.snow.uSnowSparkle, 'value', 0, 1, 0.01).name('Sparkle');
-fAccum.add(model.snow.uSnowSparkleScale, 'value', 30, 300, 1).name('Sparkle Density');
+fAccum.add(model.snow.uSnowRoughness, 'value', 0.3, 1, 0.01).name(t('accumSnowRoughness'));
+fAccum.add(model.snow.uSnowBump, 'value', 0, 1.5, 0.01).name(t('accumReliefStrength'));
+fAccum.add(model.snow.uSnowBumpScale, 'value', 0.5, 8, 0.05).name(t('accumReliefScale'));
+fAccum.add(model.snow.uSnowSparkle, 'value', 0, 1, 0.01).name(t('accumSparkle'));
+fAccum.add(model.snow.uSnowSparkleScale, 'value', 30, 300, 1).name(t('accumSparkleDensity'));
 
 fAccum.close();
 fModel.close();
@@ -824,36 +825,36 @@ const snowParams = { density: 0.5 };
 const snowAudio = createSnowAudio();
 snowAudio.setDensity(snowParams.density);
 
-const fSnow = gui.addFolder('Snowfall');
+const fSnow = gui.addFolder(t('folderSnowfall'));
 fSnow
   .add(snowParams, 'density', 0, 1, 0.01)
-  .name('Density')
+  .name(t('snowfallDensity'))
   .onChange((v) => {
     snow.setDensity(v);
     snowAudio.setDensity(v);
   });
-fSnow.add(snow.uniforms.uSpeed, 'value', 0.5, 12, 0.1).name('Fall Speed');
-fSnow.add(snow.uniforms.uSize, 'value', 0.01, 0.25, 0.001).name('Flake Size');
-fSnow.add(snow.uniforms.uSway, 'value', 0, 3, 0.01).name('Sway / Flutter');
-fSnow.add(snow.uniforms.uOpacity, 'value', 0, 1, 0.01).name('Opacity');
+fSnow.add(snow.uniforms.uSpeed, 'value', 0.5, 12, 0.1).name(t('snowfallFallSpeed'));
+fSnow.add(snow.uniforms.uSize, 'value', 0.01, 0.25, 0.001).name(t('snowfallFlakeSize'));
+fSnow.add(snow.uniforms.uSway, 'value', 0, 3, 0.01).name(t('snowfallSway'));
+fSnow.add(snow.uniforms.uOpacity, 'value', 0, 1, 0.01).name(t('snowfallOpacity'));
 fSnow
   .addColor({ c: '#ffffff' }, 'c')
-  .name('Flake Color')
+  .name(t('snowfallFlakeColor'))
   .onChange((v) => snow.uniforms.uColor.value.set(v));
-fSnow.add(snow.uniforms.uVolume.value, 'y', 10, 80, 1).name('Fall Height');
+fSnow.add(snow.uniforms.uVolume.value, 'y', 10, 80, 1).name(t('snowfallFallHeight'));
 fSnow.close();
 
-const fWind = gui.addFolder('Wind');
-fWind.add(wind, 'strength', 0, 12, 0.1).name('Strength').onChange(applyWind);
-fWind.add(wind, 'direction', 0, 360, 1).name('Direction °').onChange(applyWind);
+const fWind = gui.addFolder(t('folderWind'));
+fWind.add(wind, 'strength', 0, 12, 0.1).name(t('windStrength')).onChange(applyWind);
+fWind.add(wind, 'direction', 0, 360, 1).name(t('windDirection')).onChange(applyWind);
 fWind.close();
 
-const fLight = gui.addFolder('Lighting');
-fLight.add(renderer, 'toneMappingExposure', 0, 3, 0.01).name('Exposure');
-fLight.add(keyLight, 'intensity', 0, 8, 0.01).name('Key');
-fLight.add(fillLight, 'intensity', 0, 4, 0.01).name('Fill');
-fLight.add(rimLight, 'intensity', 0, 400, 1).name('Rim');
-fLight.add(scene, 'environmentIntensity', 0, 2, 0.01).name('Env / IBL');
+const fLight = gui.addFolder(t('folderLighting'));
+fLight.add(renderer, 'toneMappingExposure', 0, 3, 0.01).name(t('lightingExposure'));
+fLight.add(keyLight, 'intensity', 0, 8, 0.01).name(t('lightingKey'));
+fLight.add(fillLight, 'intensity', 0, 4, 0.01).name(t('lightingFill'));
+fLight.add(rimLight, 'intensity', 0, 400, 1).name(t('lightingRim'));
+fLight.add(scene, 'environmentIntensity', 0, 2, 0.01).name(t('lightingEnv'));
 
 // Fog — heavier values dim the scene more as the camera pulls back, so keep it
 // light (or turn it off) if zooming reads as a lighting change.
@@ -861,45 +862,45 @@ const fogState = { enabled: true, density: scene.fog.density };
 function applyFog() {
   scene.fog.density = fogState.enabled ? fogState.density : 0;
 }
-fLight.add(fogState, 'enabled').name('Fog').onChange(applyFog);
+fLight.add(fogState, 'enabled').name(t('lightingFog')).onChange(applyFog);
 fLight
   .add(fogState, 'density', 0, 0.03, 0.0005)
-  .name('Fog Density')
+  .name(t('lightingFogDensity'))
   .onChange(applyFog);
 fLight.close();
 
 // --- Cinematic --------------------------------------------------------------
-const fCine = gui.addFolder('🎬 Cinematic');
+const fCine = gui.addFolder(t('folderCinematic'));
 
-const fCam = fCine.addFolder('Camera');
-fCam.add(cine, 'autoOrbit').name('Auto Orbit').onChange((v) => (controls.autoRotate = v));
-fCam.add(cine, 'orbitSpeed', -3, 3, 0.05).name('Orbit Speed').onChange((v) => (controls.autoRotateSpeed = v));
-fCam.add(cine, 'fov', 18, 80, 1).name('Focal / FOV').onChange((v) => {
+const fCam = fCine.addFolder(t('folderCam'));
+fCam.add(cine, 'autoOrbit').name(t('autoOrbit')).onChange((v) => (controls.autoRotate = v));
+fCam.add(cine, 'orbitSpeed', -3, 3, 0.05).name(t('orbitSpeed')).onChange((v) => (controls.autoRotateSpeed = v));
+fCam.add(cine, 'fov', 18, 80, 1).name(t('fov')).onChange((v) => {
   camera.fov = v;
   camera.updateProjectionMatrix();
 });
-fCam.add(cine, 'letterbox').name('Letterbox').onChange(applyLetterbox);
+fCam.add(cine, 'letterbox').name(t('letterbox')).onChange(applyLetterbox);
 
 const dofParams = { enabled: false };
 fx.bokeh.enabled = dofParams.enabled; // off by default — opt in when framing
-const fDof = fCine.addFolder('Depth of Field');
-fDof.add(dofParams, 'enabled').name('Enable DoF').onChange((v) => (fx.bokeh.enabled = v));
+const fDof = fCine.addFolder(t('folderDof'));
+fDof.add(dofParams, 'enabled').name(t('dofEnabled')).onChange((v) => (fx.bokeh.enabled = v));
 fDof
   .add(fx.bokeh.uniforms.focus, 'value', 1, 40, 0.1)
-  .name('Focus Distance')
+  .name(t('focusDistance'))
   .onChange(showFocusPlane); // flash the focus plane while dragging
-fDof.add(fx.bokeh.uniforms.aperture, 'value', 0, 0.004, 0.00005).name('Aperture');
-fDof.add(fx.bokeh.uniforms.maxblur, 'value', 0, 0.02, 0.0005).name('Max Blur');
+fDof.add(fx.bokeh.uniforms.aperture, 'value', 0, 0.004, 0.00005).name(t('aperture'));
+fDof.add(fx.bokeh.uniforms.maxblur, 'value', 0, 0.02, 0.0005).name(t('maxBlur'));
 
-const fFx = fCine.addFolder('Effects');
-fFx.add(fx.bloom, 'strength', 0, 2, 0.01).name('Bloom');
-fFx.add(fx.bloom, 'radius', 0, 2, 0.01).name('Bloom Radius');
-fFx.add(fx.bloom, 'threshold', 0, 1, 0.01).name('Bloom Threshold');
-fFx.add(fx.grade.uniforms.uGrain, 'value', 0, 0.25, 0.005).name('Film Grain');
-fFx.add(fx.grade.uniforms.uVignette, 'value', 0, 1.5, 0.01).name('Vignette');
-fFx.add(fx.grade.uniforms.uChroma, 'value', 0, 0.01, 0.0001).name('Chromatic Aberration');
-fFx.add(fx.grade.uniforms.uContrast, 'value', 0.7, 1.6, 0.01).name('Contrast');
-fFx.add(fx.grade.uniforms.uSaturation, 'value', 0, 2, 0.01).name('Saturation');
+const fFx = fCine.addFolder(t('folderFx'));
+fFx.add(fx.bloom, 'strength', 0, 2, 0.01).name(t('bloom'));
+fFx.add(fx.bloom, 'radius', 0, 2, 0.01).name(t('bloomRadius'));
+fFx.add(fx.bloom, 'threshold', 0, 1, 0.01).name(t('bloomThreshold'));
+fFx.add(fx.grade.uniforms.uGrain, 'value', 0, 0.25, 0.005).name(t('filmGrain'));
+fFx.add(fx.grade.uniforms.uVignette, 'value', 0, 1.5, 0.01).name(t('vignette'));
+fFx.add(fx.grade.uniforms.uChroma, 'value', 0, 0.01, 0.0001).name(t('chromaticAberration'));
+fFx.add(fx.grade.uniforms.uContrast, 'value', 0.7, 1.6, 0.01).name(t('contrast'));
+fFx.add(fx.grade.uniforms.uSaturation, 'value', 0, 2, 0.01).name(t('saturation'));
 fCine.close();
 
 /* -------------------------------------------------------------------------- */

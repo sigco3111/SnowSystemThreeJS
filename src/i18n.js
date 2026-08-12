@@ -1,0 +1,305 @@
+// ============================================================================
+//  한국어 / English i18n — UI 문자열만 노출, 식별자는 절대 건드리지 않음
+// ============================================================================
+
+const KO = {
+  // ---- 앱 / 부트 ----
+  appTitle: '❄️ 눈 스튜디오 (한글판)',
+  creditBrand: '눈 스튜디오',
+  creditHint: '드래그로 궤도 회전 · 스크롤로 줌 · .glb 를 임포트해서 눈을 입혀보세요',
+
+  // ---- GUI 최상위 ----
+  guiTitle: '❄️ 눈 스튜디오',
+  loadModel: '모델 로드',
+  strikeNow: '⚡ 즉시 번개',
+
+  // ---- GUI 폴더 ----
+  folderMaterial: '머티리얼',
+  folderSnowGround: '지면의 눈',
+  folderLake: '🧊 얼어붙은 호수',
+  folderLakeShape: '모양과 크기',
+  folderLakeBasin: '깊이와 바닥',
+  folderLakeIce: '얼음 표면',
+  folderLakeDetail: '균열 · 서리 · 거품',
+  folderModel: '🚗 모델',
+  folderAccum: '눈 누적',
+  folderSnowfall: '눈송이',
+  folderWind: '바람',
+  folderLighting: '조명',
+  folderCinematic: '🎬 시네마틱',
+  folderCam: '카메라',
+  folderDof: '피사계 심도',
+  folderFx: '효과',
+
+  // ---- 머티리얼 ----
+  material: '머티리얼',
+  textureScale: '텍스처 스케일',
+  normalIntensity: '노멀 강도',
+  aoIntensity: 'AO 강도',
+  roughnessIntensity: '러프니스 강도',
+  displacement: '변위',
+
+  // ---- 지면의 눈 ----
+  snowDriftScale: '표류 스케일',
+  snowSeedX: '시드 X',
+  snowSeedY: '시드 Y',
+  snowRandomize: '🎲 시드 무작위화',
+  snowCoverage: '범위',
+  snowMeltLineSoftness: '융해선 부드러움',
+  snowColor: '눈 색상',
+  snowRoughness: '눈 러프니스',
+  snowDepth: '눈 깊이',
+  snowDriftBumpScale: '표류 범프 스케일',
+  snowDriftBumpStrength: '표류 범프 강도',
+  snowSparkle: '반짝임',
+  snowSparkleDensity: '반짝임 밀도',
+
+  // ---- 얼어붙은 호수 ----
+  lakeEnabled: '켜기',
+  lakeSize: '크기 (반경)',
+  lakeCenterX: '중심 X',
+  lakeCenterZ: '중심 Z',
+  lakeIrregularity: '불규칙성',
+  lakeLobes: '엽 (lobes)',
+  lakeShapeSeed: '모양 시드',
+  lakeRandomizeShape: '🎲 모양 무작위화',
+  lakeShoreSoftness: '기슭 부드러움',
+  lakeBasinDepth: '분지 깊이',
+  lakeBedColor: '바닥 색상',
+  lakeIceOpacity: '얼음 불투명도',
+  lakeShallowColor: '얕은 색상',
+  lakeDeepWaterColor: '깊은 물 색상',
+  lakeReflectionColor: '반사 색상',
+  lakeReflectionStrength: '반사 강도',
+  lakeFresnelPower: '프레넬 강도',
+  lakeSunGlint: '태양 글린트',
+  lakeSurfaceUnevenness: '표면 거칠기',
+  lakeSurfaceScale: '표면 스케일',
+  lakeCrackAmount: '균열 양',
+  lakeCrackScale: '균열 스케일',
+  lakeShoreFrost: '기슭 서리',
+  lakeFrostWidth: '서리 너비',
+  lakeBubbleAmount: '거품 양',
+  lakeBubbleDensity: '거품 밀도',
+
+  // ---- 모델 ----
+  modelPick: '모델 선택',
+  importGlb: '📂 GLB 임포트…',
+  modelScale: '스케일',
+  modelPosX: 'X 위치',
+  modelPosY: 'Y 위치',
+  modelPosZ: 'Z 위치',
+  modelRotY: 'Y 회전 (°)',
+
+  // ---- 눈 누적 ----
+  accumCoverage: '범위',
+  accumThickness: '두께',
+  accumScale: '패치 스케일',
+  accumPatchSoftness: '패치 부드러움',
+  accumSeedX: '시드 X',
+  accumSeedY: '시드 Y',
+  accumRandomize: '🎲 시드 무작위화',
+  accumFlatnessCutoff: '평평함 임계값',
+  accumSnowColor: '눈 색상',
+  accumSnowRoughness: '눈 러프니스',
+  accumReliefStrength: '기복 강도',
+  accumReliefScale: '기복 스케일',
+  accumSparkle: '반짝임',
+  accumSparkleDensity: '반짝임 밀도',
+
+  // ---- 눈송이 ----
+  snowfallDensity: '밀도',
+  snowfallFallSpeed: '낙하 속도',
+  snowfallFlakeSize: '눈송이 크기',
+  snowfallSway: '흔들림',
+  snowfallOpacity: '불투명도',
+  snowfallFlakeColor: '눈송이 색상',
+  snowfallFallHeight: '낙하 높이',
+  snowfallSound: '사운드',
+
+  // ---- 바람 ----
+  windStrength: '강도',
+  windDirection: '방향 (°)',
+
+  // ---- 조명 ----
+  lightingExposure: '노출',
+  lightingKey: '키 라이트',
+  lightingFill: '필 라이트',
+  lightingRim: '림 라이트',
+  lightingEnv: '환경 / IBL',
+  lightingFog: '안개',
+  lightingFogDensity: '안개 밀도',
+
+  // ---- 시네마틱 ----
+  autoOrbit: '자동 회전',
+  orbitSpeed: '회전 속도',
+  fov: '초점 / FOV',
+  letterbox: '레터박스',
+  dofEnabled: '피사계 심도 켜기',
+  focusDistance: '초점 거리',
+  aperture: '조리개',
+  maxBlur: '최대 블러',
+  bloom: '블룸',
+  bloomRadius: '블룸 반경',
+  bloomThreshold: '블룸 임계값',
+  filmGrain: '필름 그레인',
+  vignette: '비네트',
+  chromaticAberration: '색수차',
+  contrast: '대비',
+  saturation: '채도',
+};
+
+const EN = {
+  appTitle: '❄️ Snow Studio',
+  creditBrand: 'SNOW STUDIO',
+  creditHint: 'drag to orbit · scroll to zoom · import a .glb to snow it in',
+
+  guiTitle: '❄️ Snow Studio',
+  loadModel: 'Load Model',
+  strikeNow: '⚡ Strike Now',
+
+  folderMaterial: 'Material',
+  folderSnowGround: 'Snow on Ground',
+  folderLake: '🧊 Frozen Lake',
+  folderLakeShape: 'Shape & Size',
+  folderLakeBasin: 'Depth & Bed',
+  folderLakeIce: 'Ice Surface',
+  folderLakeDetail: 'Cracks · Frost · Bubbles',
+  folderModel: '🚗 Model',
+  folderAccum: 'Snow Accumulation',
+  folderSnowfall: 'Snowfall',
+  folderWind: 'Wind',
+  folderLighting: 'Lighting',
+  folderCinematic: '🎬 Cinematic',
+  folderCam: 'Camera',
+  folderDof: 'Depth of Field',
+  folderFx: 'Effects',
+
+  material: 'Material',
+  textureScale: 'Texture Scale',
+  normalIntensity: 'Normal Intensity',
+  aoIntensity: 'AO Intensity',
+  roughnessIntensity: 'Roughness Intensity',
+  displacement: 'Displacement',
+
+  snowDriftScale: 'Drift Scale',
+  snowSeedX: 'Seed X',
+  snowSeedY: 'Seed Y',
+  snowRandomize: '🎲 Randomize Seed',
+  snowCoverage: 'Coverage',
+  snowMeltLineSoftness: 'Melt-line Softness',
+  snowColor: 'Snow Color',
+  snowRoughness: 'Snow Roughness',
+  snowDepth: 'Snow Depth',
+  snowDriftBumpScale: 'Drift Bump Scale',
+  snowDriftBumpStrength: 'Drift Bump Strength',
+  snowSparkle: 'Sparkle',
+  snowSparkleDensity: 'Sparkle Density',
+
+  lakeEnabled: 'Enabled',
+  lakeSize: 'Size (radius)',
+  lakeCenterX: 'Center X',
+  lakeCenterZ: 'Center Z',
+  lakeIrregularity: 'Irregularity',
+  lakeLobes: 'Lobes',
+  lakeShapeSeed: 'Shape Seed',
+  lakeRandomizeShape: '🎲 Randomize Shape',
+  lakeShoreSoftness: 'Shore Softness',
+  lakeBasinDepth: 'Basin Depth',
+  lakeBedColor: 'Bed Color',
+  lakeIceOpacity: 'Ice Opacity',
+  lakeShallowColor: 'Shallow Color',
+  lakeDeepWaterColor: 'Deep Water Color',
+  lakeReflectionColor: 'Reflection Color',
+  lakeReflectionStrength: 'Reflection Strength',
+  lakeFresnelPower: 'Fresnel Power',
+  lakeSunGlint: 'Sun Glint',
+  lakeSurfaceUnevenness: 'Surface Unevenness',
+  lakeSurfaceScale: 'Surface Scale',
+  lakeCrackAmount: 'Crack Amount',
+  lakeCrackScale: 'Crack Scale',
+  lakeShoreFrost: 'Shore Frost',
+  lakeFrostWidth: 'Frost Width',
+  lakeBubbleAmount: 'Bubble Amount',
+  lakeBubbleDensity: 'Bubble Density',
+
+  modelPick: 'Model',
+  importGlb: '📂 Import GLB…',
+  modelScale: 'Scale',
+  modelPosX: 'Position X',
+  modelPosY: 'Position Y',
+  modelPosZ: 'Position Z',
+  modelRotY: 'Rotation Y°',
+
+  accumCoverage: 'Coverage',
+  accumThickness: 'Thickness',
+  accumScale: 'Patch Scale',
+  accumPatchSoftness: 'Patch Softness',
+  accumSeedX: 'Seed X',
+  accumSeedY: 'Seed Y',
+  accumRandomize: '🎲 Randomize Seed',
+  accumFlatnessCutoff: 'Flatness Cutoff',
+  accumSnowColor: 'Snow Color',
+  accumSnowRoughness: 'Snow Roughness',
+  accumReliefStrength: 'Relief Strength',
+  accumReliefScale: 'Relief Scale',
+  accumSparkle: 'Sparkle',
+  accumSparkleDensity: 'Sparkle Density',
+
+  snowfallDensity: 'Density',
+  snowfallFallSpeed: 'Fall Speed',
+  snowfallFlakeSize: 'Flake Size',
+  snowfallSway: 'Sway / Flutter',
+  snowfallOpacity: 'Opacity',
+  snowfallFlakeColor: 'Flake Color',
+  snowfallFallHeight: 'Fall Height',
+  snowfallSound: 'Sound',
+
+  windStrength: 'Strength',
+  windDirection: 'Direction °',
+
+  lightingExposure: 'Exposure',
+  lightingKey: 'Key',
+  lightingFill: 'Fill',
+  lightingRim: 'Rim',
+  lightingEnv: 'Env / IBL',
+  lightingFog: 'Fog',
+  lightingFogDensity: 'Fog Density',
+
+  autoOrbit: 'Auto Orbit',
+  orbitSpeed: 'Orbit Speed',
+  fov: 'Focal / FOV',
+  letterbox: 'Letterbox',
+  dofEnabled: 'Enable DoF',
+  focusDistance: 'Focus Distance',
+  aperture: 'Aperture',
+  maxBlur: 'Max Blur',
+  bloom: 'Bloom',
+  bloomRadius: 'Bloom Radius',
+  bloomThreshold: 'Bloom Threshold',
+  filmGrain: 'Film Grain',
+  vignette: 'Vignette',
+  chromaticAberration: 'Chromatic Aberration',
+  contrast: 'Contrast',
+  saturation: 'Saturation',
+};
+
+let current = KO;
+
+export function setLanguage(lang) {
+  current = lang === 'en' ? EN : KO;
+}
+
+export function t(key) {
+  const v = current[key];
+  if (v !== undefined) return v;
+  const e = EN[key];
+  if (e !== undefined) return e;
+  return key;
+}
+
+export const L = {
+  KO,
+  EN,
+  current: () => current,
+};
