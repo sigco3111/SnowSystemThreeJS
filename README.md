@@ -1,4 +1,4 @@
-# 🌨️ SnowSystemThreeJS — 눈 스튜디오 (한국어 한글판)
+# 🌨️ SnowSystemThreeJS — 눈 스튜디오
 
 **Three.js + GLSL 셰이더** 기반의 **절차적 눈 시뮬레이터** 입니다. GPU 인스턴싱으로 그리는 입자형 눈송이, 지면·모델에 누적되는 눈, 얼어붙은 호수, 시네마틱 카메라, 그리고 풀 포스트프로세싱 파이프라인을 한 화면에서 GUI 로 실시간 조작할 수 있습니다. 본 저장소는 `achrefelouafi/SnowSystemThreeJS` 의 **sigco3111 한국어 fork** 입니다 — 모든 컨트롤과 안내문을 한글로 제공하며, `src/i18n.js` 가 한국어/영문 양쪽 키를 모두 보관합니다.
 
